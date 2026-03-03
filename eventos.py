@@ -6,13 +6,14 @@ from dados import ITENS_SUSPEITOS
 def icon(nome):
     """Retorna ícones estáveis para mensagens de terminal."""
     icones = {
-        "pf": "🚓",
+        "pf": "👮",
         "auto_infracao": "🧾",
         "inquerito": "📁",
         "monitoramento": "📡",
         "coaf": "🏦",
     }
     return icones.get(nome, "[!]")
+
 
 _EQUIPES = [
     ("Equipe Alfa",   "Receita Federal — Setor de Scanner Avançado"),
@@ -23,12 +24,20 @@ _EQUIPES = [
     ("Equipe Foxtrot","Receita Federal + Cão Farejador K-9"),
     ("Equipe Golf",   "Força Nacional — Missão GLO Porto de Santos"),
 ]
-
+def _clamp(valor, minimo, maximo):
+    return max(minimo, min(maximo, valor))
+def _narrativa_risco(risco):
+    if risco <= 1:
+        return "baixo", "Origem de baixo risco: operação orientada por conferência documental."
+    if risco == 2:
+        return "moderado", "Origem de risco moderado: inspeção com foco em inconsistências pontuais."
+    if risco in (3, 4):
+        return "alto", "Origem de risco alto: protocolos reforçados e tolerância reduzida a desvios."
+    return "crítico", "Origem crítica: ação de inteligência prioriza confirmação imediata e cadeia de custódia rígida."
 def _inspecao_positiva(c, achou):
     """Equipe encontrou irregularidade — escolha de como encaminhar."""
     qtd_presos = random.randint(0, 3)
     peso_kg    = random.randint(5, 800)
-
     cenario = random.choice([
         "drogas ocultas em fundo falso do conteiner",
         "carga real diverge totalmente do manifesto declarado",
@@ -37,20 +46,17 @@ def _inspecao_positiva(c, achou):
         "dinheiro não declarado embalado a vácuo entre mercadorias",
         "produto contrabandeado com nota fiscal de outro exportador",
     ])
-
     print(f"\n  🚨 IRREGULARIDADES CONFIRMADAS — {cenario.upper()}")
     print(f"     Itens encontrados fisicamente:")
     for item in achou:
         print(f"       • {item} (~{peso_kg} kg)")
     if qtd_presos:
         print(f"\n     {qtd_presos} operador(es) do terminal detido(s) no pátio.")
-
     print(f"\n  Próxima ação:")
     print("   [1] Acionar Polícia Federal para prisão em flagrante")
     print("   [2] Emitir Auto de Infração e lacrar para perícia")
     print("   [3] Transferir carga à Receita Federal para destruição controlada")
     print("   [4] Abrir Inquérito Policial e liberar tripulação sob monitoramento")
-
     while True:
         try:
             acao = input("\n  Sua decisão (1/2/3/4): ").strip()
@@ -77,8 +83,6 @@ def _inspecao_positiva(c, achou):
             break
         else:
             print("  Opção inválida.")
-
-
 def _inspecao_negativa(c):
     """Equipe não encontrou nada — escolha de encaminhamento."""
     razao = random.choice([
@@ -92,18 +96,15 @@ def _inspecao_negativa(c):
     ])
     print(f"\n  ✅ INSPEÇÃO CONCLUÍDA — SEM IRREGULARIDADES.")
     print(f"     {razao}")
-
     print(f"\n  Encaminhamento:")
     print("   [1] Liberar imediatamente após vistoria")
     print("   [2] Solicitar segunda inspeção por outra equipe")
     print("   [3] Liberar, mas registrar alerta para rastreio de rota")
-
     while True:
         try:
             acao = input("\n  Sua decisão (1/2/3): ").strip()
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO após vistoria.\n")
             break
@@ -117,23 +118,24 @@ def _inspecao_negativa(c):
             break
         else:
             print("  Opção inválida.")
-
-
 def _resultado_inspecao_fisica(c, suspeitos_encontrados):
     codigo, orgao = random.choice(_EQUIPES)
+    risco = c.get("risco_pais", 1)
+    faixa, narrativa = _narrativa_risco(risco)
+    risco_mod = (risco - 1) / 4
     print(f"\n{'─'*58}")
     print(f"  🔍 RESULTADO DA INSPEÇÃO FÍSICA")
     print(f"  {codigo} — {orgao}")
+    print(f"  Faixa de risco: {faixa.upper()} ({risco}/5)")
+    print(f"  {narrativa}")
     print(f"{'─'*58}")
-
-    chance_confirmar = 0.72 if suspeitos_encontrados else 0.12
+    base_confirmar = 0.68 if suspeitos_encontrados else 0.16
+    chance_confirmar = _clamp(base_confirmar + (0.18 * risco_mod), 0.10, 0.92)
     if random.random() < chance_confirmar:
         achou = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
         _inspecao_positiva(c, achou)
     else:
         _inspecao_negativa(c)
-
-
 # ── Acionamento imediato de autoridades — banco de desfechos ──────────────────
 _UNIDADES_ACIONADAS = [
     ("DRF",     "Delegacia da Receita Federal"),
@@ -144,12 +146,10 @@ _UNIDADES_ACIONADAS = [
     ("GPort",   "Guarda Portuária — Ronda Tática de Cais"),
     ("CIPOE",   "Companhia de Inteligência Portuária — Exército"),
 ]
-
 def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
     alvo   = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
     detidos = random.randint(1, 5)
     peso_kg = random.randint(10, 1200)
-
     cenarios = [
         f"Operadores do terminal tentaram remover os itens durante abordagem.",
         f"Carga encontrada em compartimento oculto no assoalho do conteiner.",
@@ -163,19 +163,16 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
     for item in alvo:
         print(f"       • {item} (~{peso_kg} kg)")
     print(f"\n     {detidos} suspeito(s) detido(s). Conteiner {c['id']} lacrado.")
-
     print(f"\n  Encaminhamento ({unidade_sigla}):")
     print("   [1] Lavrar flagrante e encaminhar ao IML para perícia")
     print("   [2] Transferir à Polícia Federal para inquérito federal")
     print("   [3] Acionar Ministério Público — solicitar prisão preventiva")
     print("   [4] Comunicar COAF — suspeita de lavagem de dinheiro")
-
     while True:
         try:
             acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-
         if acao == "1":
             print(f"\n  📋 Flagrante lavrado. {detidos} preso(s) — Centro de Detenção Provisória.")
             print(f"     Perícia do IML agendada para as próximas 6h.\n")
@@ -196,8 +193,6 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
         else:
             print("  Opção inválida.")
     return False
-
-
 def _flagrante_negativo(c, suspeitos_encontrados):
     razao = random.choice([
         "Suspeitos avistados fugiram para área não inspecionada antes da chegada.",
@@ -209,24 +204,20 @@ def _flagrante_negativo(c, suspeitos_encontrados):
     ])
     print(f"\n  ⚠ UNIDADE NO LOCAL — SEM PRISÕES.")
     print(f"     {razao}")
-
     ganhou_strike = not suspeitos_encontrados
     if ganhou_strike:
         print(f"\n  ⛔ FALSO ALARME REGISTRADO EM PRONTUÁRIO.")
         print(f"     Nenhum indício real justificava acionamento imediato.")
         print(f"     Comandante de pátio foi notificado do erro.\n")
-
     print(f"  Próximo passo:")
     print("   [1] Liberar conteiner — sem base para retenção adicional")
     print("   [2] Manter retido e solicitar reforço de segunda unidade")
     print("   [3] Liberar, mas registrar no SisComex para rastreio de rota")
-
     while True:
         try:
             acao = input("\n  Sua decisão (1/2/3): ").strip()
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO pela unidade no local.\n")
             break
@@ -241,21 +232,23 @@ def _flagrante_negativo(c, suspeitos_encontrados):
         else:
             print("  Opção inválida.")
     return ganhou_strike
-
-
 def _desfecho_autoridades(c, suspeitos_encontrados):
     sigla, nome_completo = random.choice(_UNIDADES_ACIONADAS)
+    risco = c.get("risco_pais", 1)
+    faixa, narrativa = _narrativa_risco(risco)
+    risco_mod = (risco - 1) / 4
     print(f"\n{'─'*58}")
     print(f"  🚔 AUTORIDADES ACIONADAS")
     print(f"  Unidade: {sigla} — {nome_completo}")
+    print(f"  Faixa de risco: {faixa.upper()} ({risco}/5)")
+    print(f"  {narrativa}")
     print(f"{'─'*58}")
-
-    chance_flagrante = 0.75 if suspeitos_encontrados else 0.20
+    base_flagrante = 0.70 if suspeitos_encontrados else 0.22
+    chance_flagrante = _clamp(base_flagrante + (0.20 * risco_mod), 0.15, 0.95)
     if random.random() < chance_flagrante:
         return _flagrante_positivo(c, suspeitos_encontrados, sigla)
     else:
         return _flagrante_negativo(c, suspeitos_encontrados)
-
 # ── Decisão inicial do fiscal ──────────────────────────────────────────────────
 def tomar_decisao(c, alertas, suspeitos_encontrados):
     if alertas:
@@ -264,18 +257,15 @@ def tomar_decisao(c, alertas, suspeitos_encontrados):
             print(f"     • {a}")
     else:
         print("\n  ✅ Nenhuma irregularidade técnica reportada.")
-
     print("\n  Decisão do fiscal:")
     print("   [1] Liberar conteiner")
     print("   [2] Reter para inspeção física")
     print("   [3] Acionar autoridades imediatamente (suspeita grave)")
-
     while True:
         try:
             escolha = input("\n  Digite sua escolha (1/2/3): ").strip()
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-
         if escolha == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO.")
             print(f"     Autorizado pelo fiscal para seguir ao destino.")
@@ -297,6 +287,4 @@ def tomar_decisao(c, alertas, suspeitos_encontrados):
             return ganhou
         else:
             print("  Opção inválida. Escolha 1, 2 ou 3.")
-
-
 # ── UI helpers ───────────────────────────────────────────────────────────────
