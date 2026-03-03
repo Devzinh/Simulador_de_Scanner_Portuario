@@ -1,5 +1,19 @@
 import random
 from dados import ITENS_SUSPEITOS
+
+
+def icon(nome):
+    """Retorna ícones estáveis para mensagens de terminal."""
+    icones = {
+        "pf": "👮",
+        "auto_infracao": "🧾",
+        "inquerito": "📁",
+        "monitoramento": "📡",
+        "coaf": "🏦",
+    }
+    return icones.get(nome, "[!]")
+
+
 _EQUIPES = [
     ("Equipe Alfa",   "Receita Federal — Setor de Scanner Avançado"),
     ("Equipe Bravo",  "Polícia Federal — DENARC / Narcóticos"),
@@ -49,13 +63,13 @@ def _inspecao_positiva(c, achou):
             raise KeyboardInterrupt
         
         if acao == "1":
-            print(f"\n  � PF acionada. Flagrante lavrado — {max(qtd_presos,1)} preso(s).")
+            print(f"\n  {icon('pf')} PF acionada. Flagrante lavrado — {max(qtd_presos,1)} preso(s).")
             print(f"     Conteiner {c['id']} recolhido como corpo de delito.")
             print(f"     Operação registrada no sistema COAF.\n")
             break
         elif acao == "2":
             valor_multa = random.randint(50, 500) * 1000
-            print(f"\n  � Auto de Infração emitido — multa estimada: R$ {valor_multa:,}.")
+            print(f"\n  {icon('auto_infracao')} Auto de Infração emitido — multa estimada: R$ {valor_multa:,}.")
             print(f"     Conteiner {c['id']} lacrado. Perícia forense convocada (ETA 24–48h).\n")
             break
         elif acao == "3":
@@ -63,7 +77,7 @@ def _inspecao_positiva(c, achou):
             print(f"     Processo administrativo {c['id']}-RF aberto. Armador notificado.\n")
             break
         elif acao == "4":
-            print(f"\n  � Inquérito Policial Federal aberto — nº {random.randint(100,999)}/2026-SR/SP.")
+            print(f"\n  {icon('inquerito')} Inquérito Policial Federal aberto — nº {random.randint(100,999)}/2026-SR/SP.")
             print(f"     Tripulação liberada com tornozeleira. Passaportes retidos.\n")
             break
         else:
@@ -98,7 +112,7 @@ def _inspecao_negativa(c):
             print(f"     Conteiner {c['id']} permanece no pátio de retenção.\n")
             break
         elif acao == "3":
-            print(f"\n  � Conteiner {c['id']} liberado com alerta de monitoramento.")
+            print(f"\n  {icon('monitoramento')} Conteiner {c['id']} liberado com alerta de monitoramento.")
             print(f"     Sistema SisComex notificado — rastreio ativo até destino final.\n")
             break
         else:
@@ -164,7 +178,7 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
             break
         elif acao == "2":
             num_ip = random.randint(100, 999)
-            print(f"\n  � Inquérito Federal nº {num_ip}/2026-SR/SP aberto.")
+            print(f"\n  {icon('inquerito')} Inquérito Federal nº {num_ip}/2026-SR/SP aberto.")
             print(f"     Custódia transferida à PF. Advogados notificados.\n")
             break
         elif acao == "3":
@@ -172,7 +186,7 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
             print(f"     Audiência de custódia marcada para as próximas 24h.\n")
             break
         elif acao == "4":
-            print(f"\n  � COAF notificado — investigação de lavagem iniciada.")
+            print(f"\n  {icon('coaf')} COAF notificado — investigação de lavagem iniciada.")
             print(f"     Contas bancárias dos envolvidos bloqueadas preventivamente.\n")
             break
         else:
