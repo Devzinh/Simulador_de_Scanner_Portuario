@@ -1,0 +1,17 @@
+# Ambientes virtuais (ignoramos a pasta toda)
+.venv/
+venv/
+env/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivo de save game (dados locais do usuário não devem subir para o repositório)
+save_ebco.json
+
+# Logs e arquivos de sistema
+*.log
+.DS_Store
+Thumbs.db
