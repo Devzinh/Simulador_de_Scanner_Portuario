@@ -152,3 +152,4 @@ def gerar_id_conteiner() -> str:
     owner = random.choice(ARMADORES)
     serial = "".join(str(random.randint(0, 9)) for _ in range(6))
     digito = _digito_verificador(owner, serial)
+    return f"{owner}U{serial}{digito}"

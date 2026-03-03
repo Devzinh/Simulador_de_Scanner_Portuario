@@ -1,5 +1,5 @@
 import random
-from dados import *
+from dados import ITENS_SUSPEITOS
 
 _EQUIPES = [
     ("Equipe Alfa",   "Receita Federal — Setor de Scanner Avançado"),
@@ -42,8 +42,7 @@ def _inspecao_positiva(c, achou):
         try:
             acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         except KeyboardInterrupt:
-            print("\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força.\n")
-            exit(0)
+            raise KeyboardInterrupt
         
         if acao == "1":
             print(f"\n  � PF acionada. Flagrante lavrado — {max(qtd_presos,1)} preso(s).")
@@ -90,8 +89,7 @@ def _inspecao_negativa(c):
         try:
             acao = input("\n  Sua decisão (1/2/3): ").strip()
         except KeyboardInterrupt:
-            print("\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força.\n")
-            exit(0)
+            raise KeyboardInterrupt
 
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO após vistoria.\n")
@@ -163,8 +161,7 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
         try:
             acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         except KeyboardInterrupt:
-            print("\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força.\n")
-            exit(0)
+            raise KeyboardInterrupt
 
         if acao == "1":
             print(f"\n  📋 Flagrante lavrado. {detidos} preso(s) — Centro de Detenção Provisória.")
@@ -215,8 +212,7 @@ def _flagrante_negativo(c, suspeitos_encontrados):
         try:
             acao = input("\n  Sua decisão (1/2/3): ").strip()
         except KeyboardInterrupt:
-            print("\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força.\n")
-            exit(0)
+            raise KeyboardInterrupt
 
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO pela unidade no local.\n")
@@ -265,8 +261,7 @@ def tomar_decisao(c, alertas, suspeitos_encontrados):
         try:
             escolha = input("\n  Digite sua escolha (1/2/3): ").strip()
         except KeyboardInterrupt:
-            print("\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força.\n")
-            exit(0)
+            raise KeyboardInterrupt
 
         if escolha == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO.")

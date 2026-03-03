@@ -1,13 +1,9 @@
 import random
-import string
-from dados import *
-
-def gerar_id_conteiner():
-    owner = "".join(random.choices(string.ascii_uppercase, k=4))
-    serial = "".join(random.choices(string.digits, k=6))
-    digito = random.choice(string.digits)
-    return f"{owner}-{serial}-{digito}"
-
+from dados import (
+    TIPOS_CARGA, PAISES_ORIGEM, ITENS_SUSPEITOS, NOMES_CAMUFLAGEM, 
+    ITENS_ISCA, ITENS_POR_TIPO, CHANCE_ITEM_SUSPEITO, CHANCE_CAMUFLAGEM, 
+    CHANCE_ISCA, gerar_id_conteiner
+)
 def gerar_conteiner():
     tipo_carga = random.choice(TIPOS_CARGA)
     pais = random.choice(list(PAISES_ORIGEM.keys()))
@@ -34,8 +30,12 @@ def gerar_conteiner():
             suspeito = False
         itens_escaneados.append({"item": nome_exibido, "densidade": densidade, "suspeito": suspeito})
 
+    novo_id = gerar_id_conteiner()
+    if not isinstance(novo_id, str) or not novo_id.strip():
+        raise RuntimeError("gerar_id_conteiner gerou um ID vazio ou inválido.")
+    
     return {
-        "id": gerar_id_conteiner(),
+        "id": novo_id,
         "peso_declarado": random.randint(1000, 10000),
         "tipo_carga": tipo_carga,
         "pais": pais,

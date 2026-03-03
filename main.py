@@ -115,26 +115,38 @@ def main():
     save = _carregar()
 
     if save:
-        print()
-        _sep()
-        print(f"  💾 SAVE ENCONTRADO")
-        print(f"  Inspetor    : {save['nome']}")
-        print(f"  Advertências: {save['strikes']}/{max_strikes}   "
-              f"Conteineres: {save['total']}   Acertos: {save['acertos']}")
-        _sep()
-        resp = input("\n  Continuar partida salva? (s/n): ").strip().lower()
-        if resp == "s":
-            nome    = save["nome"]
-            strikes = save["strikes"]
-            total   = save["total"]
-            acertos = save["acertos"]
-            erros   = save["erros"]
-            print(f"\n  Bem-vindo de volta, Inspetor {nome}.\n")
-        else:
+        try:
+            print()
+            _sep()
+            print(f"  💾 SAVE ENCONTRADO")
+            print(f"  Inspetor    : {save['nome']}")
+            print(f"  Advertências: {save['strikes']}/{max_strikes}   "
+                  f"Conteineres: {save['total']}   Acertos: {save['acertos']}")
+            _sep()
+            
+            while True:
+                resp = input("\n  Continuar partida salva? (s/n): ").strip().lower()
+                if resp in ('s', 'n'):
+                    break
+                print("  Opção inválida. Digite 's' para SIM ou 'n' para NÃO.")
+
+            if resp == "s":
+                nome    = save["nome"]
+                strikes = save["strikes"]
+                total   = save["total"]
+                acertos = save["acertos"]
+                erros   = save["erros"]
+                print(f"\n  Bem-vindo de volta, Inspetor {nome}.\n")
+            else:
+                _deletar_save()
+                nome    = _intro()
+                strikes = total = acertos = erros = 0
+        except KeyError:
+            print("\n  [AVISO] Dados do save estão incompletos. Iniciando nova partida.")
             _deletar_save()
-            nome    = _intro()
-            strikes = total = acertos = erros = 0
-    else:
+            save = None
+            
+    if not save:
         nome    = _intro()
         strikes = total = acertos = erros = 0
 
