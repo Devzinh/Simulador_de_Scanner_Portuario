@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import random
 from dados import ITENS_SUSPEITOS, NARRATIVA_FRAGMENTOS
 
@@ -119,7 +120,6 @@ def _inspecao_positiva(c, achou):
     print("   [2] Emitir Auto de Infração e lacrar para perícia")
     print("   [3] Transferir carga à Receita Federal para destruição controlada")
     print("   [4] Abrir Inquérito Policial e liberar tripulação sob monitoramento")
-
     while True:
         acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         if acao == "1":
@@ -152,7 +152,6 @@ def _inspecao_negativa(c):
     print("   [1] Liberar imediatamente após vistoria")
     print("   [2] Solicitar segunda inspeção por outra equipe")
     print("   [3] Liberar, mas registrar alerta para rastreio de rota")
-
     while True:
         acao = input("\n  Sua decisão (1/2/3): ").strip()
         if acao == "1":
@@ -174,9 +173,11 @@ def _resultado_inspecao_fisica(c, suspeitos_encontrados):
     print(f"\n{'─'*58}")
     print("  🔍 RESULTADO DA INSPEÇÃO FÍSICA")
     print(f"  {codigo} — {orgao}")
+    print(f"  Faixa de risco: {faixa.upper()} ({risco}/5)")
+    print(f"  {narrativa}")
     print(f"{'─'*58}")
-
-    chance_confirmar = 0.72 if suspeitos_encontrados else 0.12
+    base_confirmar = 0.68 if suspeitos_encontrados else 0.16
+    chance_confirmar = _clamp(base_confirmar + (0.18 * risco_mod), 0.10, 0.92)
     if random.random() < chance_confirmar:
         achou = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
         _inspecao_positiva(c, achou)
@@ -195,13 +196,11 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
     for item in alvo:
         print(f"       • {item} (~{peso_kg} kg)")
     print(f"\n     {detidos} suspeito(s) detido(s). Conteiner {c['id']} lacrado.")
-
     print(f"\n  Encaminhamento ({unidade_sigla}):")
     print("   [1] Lavrar flagrante e encaminhar ao IML para perícia")
     print("   [2] Transferir à Polícia Federal para inquérito federal")
     print("   [3] Acionar Ministério Público — solicitar prisão preventiva")
     print("   [4] Comunicar COAF — suspeita de lavagem de dinheiro")
-
     while True:
         acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         if acao == "1":
@@ -223,13 +222,10 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
             break
         print("  Opção inválida.")
     return False
-
-
 def _flagrante_negativo(c, suspeitos_encontrados):
     razao = _montar_narrativa(c, suspeitos_encontrados)
     print("\n  ⚠ UNIDADE NO LOCAL — SEM PRISÕES.")
     print(f"     {razao}")
-
     ganhou_strike = not suspeitos_encontrados
     if ganhou_strike:
         print("\n  ⛔ FALSO ALARME REGISTRADO EM PRONTUÁRIO.")
@@ -240,7 +236,6 @@ def _flagrante_negativo(c, suspeitos_encontrados):
     print("   [1] Liberar conteiner — sem base para retenção adicional")
     print("   [2] Manter retido e solicitar reforço de segunda unidade")
     print("   [3] Liberar, mas registrar no SisComex para rastreio de rota")
-
     while True:
         acao = input("\n  Sua decisão (1/2/3): ").strip()
         if acao == "1":
@@ -256,16 +251,19 @@ def _flagrante_negativo(c, suspeitos_encontrados):
             break
         print("  Opção inválida.")
     return ganhou_strike
-
-
 def _desfecho_autoridades(c, suspeitos_encontrados):
     sigla, nome_completo = random.choice(_UNIDADES_ACIONADAS)
+    risco = c.get("risco_pais", 1)
+    faixa, narrativa = _narrativa_risco(risco)
+    risco_mod = (risco - 1) / 4
     print(f"\n{'─'*58}")
     print("  🚔 AUTORIDADES ACIONADAS")
     print(f"  Unidade: {sigla} — {nome_completo}")
+    print(f"  Faixa de risco: {faixa.upper()} ({risco}/5)")
+    print(f"  {narrativa}")
     print(f"{'─'*58}")
-
-    chance_flagrante = 0.75 if suspeitos_encontrados else 0.20
+    base_flagrante = 0.70 if suspeitos_encontrados else 0.22
+    chance_flagrante = _clamp(base_flagrante + (0.20 * risco_mod), 0.15, 0.95)
     if random.random() < chance_flagrante:
         return _flagrante_positivo(c, suspeitos_encontrados, sigla)
     return _flagrante_negativo(c, suspeitos_encontrados)
@@ -278,12 +276,10 @@ def tomar_decisao(c, alertas, suspeitos_encontrados):
             print(f"     • {a}")
     else:
         print("\n  ✅ Nenhuma irregularidade técnica reportada.")
-
     print("\n  Decisão do fiscal:")
     print("   [1] Liberar conteiner")
     print("   [2] Reter para inspeção física")
     print("   [3] Acionar autoridades imediatamente (suspeita grave)")
-
     while True:
         escolha = input("\n  Digite sua escolha (1/2/3): ").strip()
         if escolha == "1":
