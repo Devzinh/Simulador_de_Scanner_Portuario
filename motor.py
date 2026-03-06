@@ -1,7 +1,7 @@
 import random
 from dados import (
-    TIPOS_CARGA, PAISES_ORIGEM, ITENS_SUSPEITOS, NOMES_CAMUFLAGEM, 
-    ITENS_ISCA, ITENS_POR_TIPO, CHANCE_ITEM_SUSPEITO, CHANCE_CAMUFLAGEM, 
+    TIPOS_CARGA, PAISES_ORIGEM, ITENS_SUSPEITOS, NOMES_CAMUFLAGEM,
+    ITENS_ISCA, ITENS_POR_TIPO, CHANCE_ITEM_SUSPEITO, CHANCE_CAMUFLAGEM,
     CHANCE_ISCA, gerar_id_conteiner
 )
 
@@ -10,27 +10,25 @@ def _clamp(valor, minimo, maximo):
     return max(minimo, min(maximo, valor))
 
 
-def gerar_conteiner():
+def gerar_conteiner(risco_escala=1.0, suspeito_escala=1.0):
     tipo_carga = random.choice(TIPOS_CARGA)
     pais = random.choice(list(PAISES_ORIGEM.keys()))
-    porto, iso, risco = PAISES_ORIGEM[pais]
+    porto, iso, risco_base = PAISES_ORIGEM[pais]
+    risco = int(round(_clamp(risco_base * risco_escala, 1, 5)))
 
     risco_normalizado = (risco - 1) / 4  # 0.0 (baixo) -> 1.0 (crítico)
     risk_mod = 0.8 + (0.4 * risco_normalizado)
 
-    chance_item_suspeito = _clamp(CHANCE_ITEM_SUSPEITO * risk_mod, 0.06, 0.24)
-    chance_camuflagem = _clamp(CHANCE_CAMUFLAGEM * (0.9 + 0.35 * risco_normalizado), 0.20, 0.80)
-    chance_isca = _clamp(CHANCE_ISCA * (1.15 - 0.30 * risco_normalizado), 0.08, 0.26)
+    chance_item_suspeito = _clamp(CHANCE_ITEM_SUSPEITO * risk_mod * suspeito_escala, 0.04, 0.35)
+    chance_camuflagem = _clamp(CHANCE_CAMUFLAGEM * (0.9 + 0.35 * risco_normalizado), 0.20, 0.85)
+    chance_isca = _clamp(CHANCE_ISCA * (1.15 - 0.30 * risco_normalizado), 0.06, 0.30)
 
     itens_escaneados = []
     for _ in range(random.randint(12, 22)):
         roll = random.random()
         if roll < chance_item_suspeito:
             nome_real = random.choice(ITENS_SUSPEITOS)
-            if random.random() < chance_camuflagem:
-                nome_exibido = random.choice(NOMES_CAMUFLAGEM)
-            else:
-                nome_exibido = nome_real
+            nome_exibido = random.choice(NOMES_CAMUFLAGEM) if random.random() < chance_camuflagem else nome_real
             densidade = random.randint(150, 500)
             suspeito = True
         elif roll < chance_item_suspeito + chance_isca:
@@ -53,7 +51,7 @@ def gerar_conteiner():
     direcao = -1 if random.random() < (0.45 + (0.25 * risco_normalizado)) else 1
     peso_declarado = int(round(peso_real * (1 + (direcao * discrepancia_real))))
     peso_declarado = max(500, peso_declarado)
-    
+
     return {
         "id": novo_id,
         "peso_declarado": peso_declarado,
@@ -95,11 +93,11 @@ def simular_scanner(c):
 
     if diferenca > (c["peso_declarado"] * 0.05):
         alertas.append("Discrepância de peso detectada entre manifesto e aferição física")
-    
+
     itens_densos = sum(1 for item in c["itens_escaneados"] if item["densidade"] > 300)
     if itens_densos > 0:
         alertas.append(f"Aviso estrutural: {itens_densos} assinatura(s) de densidade atípica (>300 kg/m³)")
-        
+
     if c["risco_pais"] >= 4:
         alertas.append(f"Regra de inteligência: Origem classificada como risco {risco_label[c['risco_pais']]}")
 
