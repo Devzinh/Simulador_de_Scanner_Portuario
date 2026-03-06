@@ -22,25 +22,44 @@ def _titulo(texto):
     print(f"  └{'─' * (W - 4)}┘")
 
 
+def _gerar_contexto_operacional():
+    portos = [
+        ("SANTOS", "SP"),
+        ("ITAJAÍ", "SC"),
+        ("PARANAGUÁ", "PR"),
+        ("SUAPE", "PE"),
+        ("PECÉM", "CE"),
+        ("MANAUS", "AM"),
+        ("VITÓRIA", "ES"),
+        ("RIO DE JANEIRO", "RJ"),
+        ("SALVADOR", "BA"),
+        ("RIO GRANDE", "RS"),
+    ]
+    turnos = ["MATUTINO", "VESPERTINO", "NOTURNO"]
+    fiscalizacoes = [
+        "TRIAGEM ADUANEIRA DE RISCO",
+        "OPERAÇÃO DE CONTRABANDO E DESCAMINHO",
+        "FISCALIZAÇÃO DE CARGA PERIGOSA",
+        "BLOCO DE INSPEÇÃO ALFANDEGÁRIA REFORÇADA",
+    ]
+    porto_nome, porto_uf = random.choice(portos)
+    return {
+        "porto_nome": porto_nome,
+        "porto_uf": porto_uf,
+        "turno": random.choice(turnos),
+        "fiscalizacao": random.choice(fiscalizacoes),
+    }
+
+
 # ── Loop principal ─────────────────────────────────────────────────────────────
 def _intro():
     import datetime
     hoje = datetime.date.today().strftime("%d/%m/%Y")
-    PORTOS = [
-        ("SANTOS",     "SP"),
-        ("ITAJAÍ",     "SC"),
-        ("PARANAGUÁ",  "PR"),
-        ("SUAPE",      "PE"),
-        ("PECÉM",      "CE"),
-        ("MANAUS",     "AM"),
-        ("VITÓRIA",    "ES"),
-        ("RIO DE JANEIRO", "RJ"),
-        ("SALVADOR",   "BA"),
-        ("RIO GRANDE", "RS"),
-    ]
-    TURNOS = ["MATUTINO", "VESPERTINO", "NOTURNO"]
-    porto_nome, porto_uf = random.choice(PORTOS)
-    turno = random.choice(TURNOS)
+    contexto = _gerar_contexto_operacional()
+    porto_nome = contexto["porto_nome"]
+    porto_uf = contexto["porto_uf"]
+    turno = contexto["turno"]
+    fiscalizacao = contexto["fiscalizacao"]
     _box([
         "",
         "E B C O  S Y S T E M S",
@@ -49,6 +68,7 @@ def _intro():
         "",
         f"DATA: {hoje}   TURNO: {turno}",
         f"TERMINAL: PORTO DE {porto_nome} — {porto_uf}",
+        f"MISSÃO: {fiscalizacao}",
         "",
     ])
 
@@ -61,7 +81,9 @@ def _intro():
   Bem-vindo, Inspetor {nome}.
 
   Você foi designado para o Terminal de Escaneamento do Porto
-  de Santos — o maior porto da América Latina.
+  de {porto_nome} — {porto_uf}, em turno {turno.lower()}.
+
+  A operação ativa desta rodada é: {fiscalizacao}.
 
   Seu trabalho é analisar os dados do scanner e decidir:
 
@@ -78,10 +100,13 @@ def _intro():
     print()
     input("  Pressione ENTER para iniciar o turno...")
     print()
-    return nome
+    return nome, contexto
 
 
-def _game_over(nome, strikes_total):
+def _game_over(nome, strikes_total, contexto):
+    porto_nome = contexto["porto_nome"]
+    porto_uf = contexto["porto_uf"]
+    turno = contexto["turno"]
     print()
     _box([
         "",
@@ -91,7 +116,8 @@ def _game_over(nome, strikes_total):
         f"{strikes_total} infrações graves registradas em prontuário.",
         "",
         "A EBCO não pode manter um fiscal cujos erros",
-        "colocam em risco a segurança do Porto de Santos.",
+        f"colocam em risco o Porto de {porto_nome} — {porto_uf}.",
+        f"Escala crítica comprometida no turno {turno.lower()}.",
         "",
         "Você foi afastado com efeito imediato.",
         "Processo administrativo disciplinar aberto.",
@@ -136,18 +162,26 @@ def main():
                 total   = save["total"]
                 acertos = save["acertos"]
                 erros   = save["erros"]
+                contexto = {
+                    "porto_nome": save.get("porto_nome"),
+                    "porto_uf": save.get("porto_uf"),
+                    "turno": save.get("turno"),
+                    "fiscalizacao": save.get("fiscalizacao"),
+                }
+                if not all(contexto.values()):
+                    contexto = _gerar_contexto_operacional()
                 print(f"\n  Bem-vindo de volta, Inspetor {nome}.\n")
             else:
                 _deletar_save()
-                nome    = _intro()
+                nome, contexto = _intro()
                 strikes = total = acertos = erros = 0
         except KeyError:
             print("\n  [AVISO] Dados do save estão incompletos. Iniciando nova partida.")
             _deletar_save()
             save = None
-            
+
     if not save:
-        nome    = _intro()
+        nome, contexto = _intro()
         strikes = total = acertos = erros = 0
 
     primeiro = True
@@ -167,12 +201,21 @@ def main():
             else:
                 acertos += 1
 
-            _salvar({"nome": nome, "strikes": strikes,
-                     "total": total, "acertos": acertos, "erros": erros})
+            _salvar({
+                "nome": nome,
+                "strikes": strikes,
+                "total": total,
+                "acertos": acertos,
+                "erros": erros,
+                "porto_nome": contexto["porto_nome"],
+                "porto_uf": contexto["porto_uf"],
+                "turno": contexto["turno"],
+                "fiscalizacao": contexto["fiscalizacao"],
+            })
             _hud_strikes(nome, strikes, max_strikes, total, acertos, erros)
 
             if strikes >= max_strikes:
-                _game_over(nome, strikes)
+                _game_over(nome, strikes, contexto)
                 _deletar_save()
                 break
 
@@ -183,10 +226,18 @@ def main():
                 print("  Opção inválida. Digite 's' para SIM ou 'n' para NÃO.")
 
             if continuar == "n":
-                print(f"\n  Turno encerrado. Até amanhã, {nome}. Progresso salvo.\n")
+                print(
+                    f"\n  Turno {contexto['turno'].lower()} encerrado no Porto de "
+                    f"{contexto['porto_nome']} — {contexto['porto_uf']}. "
+                    f"Até amanhã, {nome}. Progresso salvo.\n"
+                )
                 break
     except KeyboardInterrupt:
-        print(f"\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força. Até logo, {nome}. Progresso salvo.\n")
+        print(
+            f"\n\n  [SISTEMA INTERROMPIDO] Turno {contexto['turno'].lower()} "
+            f"encerrado à força no Porto de {contexto['porto_nome']} — "
+            f"{contexto['porto_uf']}. Até logo, {nome}. Progresso salvo.\n"
+        )
 
 
 if __name__ == "__main__":
