@@ -2,26 +2,77 @@
 import random
 from dados import ITENS_SUSPEITOS, NARRATIVA_FRAGMENTOS
 
-_EQUIPE_PADRAO = [
-    ("Equipe Alfa", "Receita Federal — Setor de Scanner Avançado"),
-    ("Equipe Bravo", "Polícia Federal — DENARC / Narcóticos"),
-    ("Equipe Charlie", "IBAMA — Divisão de Fauna e Carga Ambiental"),
-    ("Equipe Delta", "ANVISA — Vigilância Sanitária Portuária"),
-    ("Equipe Echo", "Guarda Portuária (GPort) — Patrulha de Cais"),
-    ("Equipe Foxtrot", "Receita Federal + Cão Farejador K-9"),
-    ("Equipe Golf", "Força Nacional — Missão GLO Porto de Santos"),
-]
-
 _EQUIPES = [
-    ("Equipe Alfa",   "Receita Federal — Setor de Scanner Avançado"),
-    ("Equipe Bravo",  "Polícia Federal — DENARC / Narcóticos"),
+    ("Equipe Alfa",    "Receita Federal — Setor de Scanner Avançado"),
+    ("Equipe Bravo",   "Polícia Federal — DENARC / Narcóticos"),
     ("Equipe Charlie", "IBAMA — Divisão de Fauna e Carga Ambiental"),
-    ("Equipe Delta",  "ANVISA — Vigilância Sanitária Portuária"),
-    ("Equipe Echo",   "Guarda Portuária (GPort) — Patrulha de Cais"),
+    ("Equipe Delta",   "ANVISA — Vigilância Sanitária Portuária"),
+    ("Equipe Echo",    "Guarda Portuária (GPort) — Patrulha de Cais"),
     ("Equipe Foxtrot", "Receita Federal + Cão Farejador K-9"),
-    ("Equipe Golf",   "Força Nacional — Missão GLO Porto de Santos"),
+    ("Equipe Golf",    "Força Nacional — Missão GLO Porto de Santos"),
 ]
 
+_UNIDADES_ACIONADAS = [
+    ("DRF", "Delegacia da Receita Federal"),
+    ("DRACO", "Delegacia de Repressão ao Crime Organizado"),
+    ("DENARC", "Polícia Federal — Divisão de Narcóticos"),
+    ("GOE-PF", "Grupamento de Operações Especiais — PF"),
+    ("COIPORT", "Coordenação de Inteligência Portuária"),
+    ("GPort", "Guarda Portuária — Ronda Tática de Cais"),
+    ("CIPOE", "Companhia de Inteligência Portuária — Exército"),
+]
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _clamp(valor, minimo, maximo):
+    return max(minimo, min(maximo, valor))
+
+
+_KEYWORD_EQUIPE_MAP = {
+    "droga": 1, "cocaina": 1, "heroina": 1, "metanfetamina": 1,
+    "fauna": 2, "ambiental": 2, "radioativo": 2,
+    "farmac": 3, "remedio": 3, "vacina": 3, "medicamento": 3,
+}
+
+
+def _equipe_coerente(suspeitos: list) -> tuple[str, str]:
+    """Pick a team weighted by suspect-item keywords."""
+    if suspeitos:
+        texto = " ".join(suspeitos).lower()
+        for keyword, idx in _KEYWORD_EQUIPE_MAP.items():
+            if keyword in texto:
+                return _EQUIPES[idx]
+    return random.choice(_EQUIPES)
+
+
+_FAIXAS_RISCO = {
+    1: ("baixo",    "Perfil compatível com comércio regular."),
+    2: ("moderado", "Rota com incidência pontual de irregularidades."),
+    3: ("elevado",  "Histórico recente de apreensões nesta rota."),
+    4: ("alto",     "Inteligência indica operação ativa nesta faixa."),
+    5: ("crítico",  "Alerta máximo — múltiplos flagrantes na origem."),
+}
+
+
+def _narrativa_risco(risco: int) -> tuple[str, str]:
+    return _FAIXAS_RISCO.get(risco, _FAIXAS_RISCO[1])
+
+
+def _montar_narrativa(c: dict, suspeitos: list) -> str:
+    """Build a descriptive inspection-outcome sentence from NARRATIVA_FRAGMENTOS."""
+    ctx = random.choice(NARRATIVA_FRAGMENTOS["contexto_operacao"])
+    metodo = random.choice(NARRATIVA_FRAGMENTOS["metodo_ocultacao"])
+    reacao = random.choice(NARRATIVA_FRAGMENTOS["reacao_equipe"])
+    impacto = random.choice(NARRATIVA_FRAGMENTOS["impacto_terminal"])
+    return (
+        f"{ctx['ator']} {ctx['local']} {metodo['acao']} "
+        f"{metodo['evidencia']}. {reacao['ator']} {reacao['acao']}, "
+        f"{impacto['consequencia']}."
+    )
+
+
+# ── Efeitos ────────────────────────────────────────────────────────────────────
 
 def _efeitos_base():
     return {
@@ -45,6 +96,8 @@ def _merge_efeitos(*efeitos):
                 final[k] += v
     return final
 
+
+# ── Fluxos de inspeção / flagrante ─────────────────────────────────────────────
 
 def _inspecao_positiva(c, achou):
     qtd_presos = random.randint(0, 3)
@@ -121,6 +174,10 @@ def _inspecao_negativa(c):
 
 def _resultado_inspecao_fisica(c, suspeitos_encontrados):
     codigo, orgao = _equipe_coerente(suspeitos_encontrados)
+    risco = c.get("risco_pais", 1)
+    faixa, narrativa = _narrativa_risco(risco)
+    risco_mod = (risco - 1) / 4
+
     print(f"\n{'─'*58}")
     print("  🔍 RESULTADO DA INSPEÇÃO FÍSICA")
     print(f"  {codigo} — {orgao}")
@@ -133,17 +190,6 @@ def _resultado_inspecao_fisica(c, suspeitos_encontrados):
         achou = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
         return _inspecao_positiva(c, achou)
     return _inspecao_negativa(c)
-
-
-_UNIDADES_ACIONADAS = [
-    ("DRF", "Delegacia da Receita Federal"),
-    ("DRACO", "Delegacia de Repressão ao Crime Organizado"),
-    ("DENARC", "Polícia Federal — Divisão de Narcóticos"),
-    ("GOE-PF", "Grupamento de Operações Especiais — PF"),
-    ("COIPORT", "Coordenação de Inteligência Portuária"),
-    ("GPort", "Guarda Portuária — Ronda Tática de Cais"),
-    ("CIPOE", "Companhia de Inteligência Portuária — Exército"),
-]
 
 
 def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
@@ -321,6 +367,3 @@ def tomar_decisao(c, alertas, suspeitos_encontrados, estado_jogador):
         efeitos = _merge_efeitos(efeitos, _efeitos_emergentes(estado_jogador))
         _aplicar_efeitos(estado_jogador, efeitos)
         return efeitos
-
-
-# ── UI helpers ───────────────────────────────────────────────────────────────

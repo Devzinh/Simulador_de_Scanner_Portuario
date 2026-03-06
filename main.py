@@ -1,7 +1,7 @@
 import random
 from motor import gerar_conteiner, simular_scanner
 from eventos import tomar_decisao
-from save import _salvar, _carregar, _deletar_save
+from save import _salvar, _carregar, _deletar_save, _sanitizar_nome
 
 W = 62
 
@@ -58,21 +58,13 @@ def _gerar_contexto_operacional():
 def _intro():
     import datetime
     hoje = datetime.date.today().strftime("%d/%m/%Y")
-    PORTOS = [
-        ("SANTOS", "SP"),
-        ("ITAJAÍ", "SC"),
-        ("PARANAGUÁ", "PR"),
-        ("SUAPE", "PE"),
-        ("PECÉM", "CE"),
-        ("MANAUS", "AM"),
-        ("VITÓRIA", "ES"),
-        ("RIO DE JANEIRO", "RJ"),
-        ("SALVADOR", "BA"),
-        ("RIO GRANDE", "RS"),
-    ]
-    TURNOS = ["MATUTINO", "VESPERTINO", "NOTURNO"]
-    porto_nome, porto_uf = random.choice(PORTOS)
-    turno = random.choice(TURNOS)
+
+    contexto = _gerar_contexto_operacional()
+    porto_nome = contexto["porto_nome"]
+    porto_uf = contexto["porto_uf"]
+    turno = contexto["turno"]
+    fiscalizacao = contexto["fiscalizacao"]
+
     _box([
         "",
         "E B C O  S Y S T E M S",
@@ -87,7 +79,7 @@ def _intro():
 
     input("\n  Pressione ENTER para continuar...")
     print()
-    nome = input("  Antes de começar, qual é o seu nome, inspetor? ").strip() or "Inspetor"
+    nome = _sanitizar_nome(input("  Antes de começar, qual é o seu nome, inspetor? "))
     print()
     _sep()
     print(f"""
@@ -178,13 +170,15 @@ def _chance_bonus_inteligencia(estado_jogador):
 def main():
     max_strikes = 3
     save = _carregar()
+    contexto = None
 
     if save:
         try:
+            nome = _sanitizar_nome(save.get("nome", ""))
             print()
             _sep()
             print(f"  💾 SAVE ENCONTRADO")
-            print(f"  Inspetor    : {save['nome']}")
+            print(f"  Inspetor    : {nome}")
             print(f"  Advertências: {save['strikes']}/{max_strikes}   Conteineres: {save['total']}   Acertos: {save['acertos']}")
             print(
                 f"  Reputação   : {save['reputacao']}/100   "
@@ -202,22 +196,24 @@ def main():
 
             if resp == "s":
                 estado_jogador = dict(save)
-                nome = estado_jogador["nome"]
+                estado_jogador["nome"] = nome
+                contexto = _gerar_contexto_operacional()
                 print(f"\n  Bem-vindo de volta, Inspetor {nome}.\n")
             else:
                 _deletar_save()
-                nome = _intro()
+                nome, contexto = _intro()
                 estado_jogador = _estado_inicial(nome)
         except KeyError:
             print("\n  [AVISO] Dados do save estão incompletos. Iniciando nova partida.")
             _deletar_save()
             save = None
 
-    if not save:
-        nome = _intro()
+    if not save or contexto is None:
+        nome, contexto = _intro()
         estado_jogador = _estado_inicial(nome)
 
     primeiro = True
+    salvo_status = "not_attempted"
     try:
         while True:
             if not primeiro:
@@ -241,7 +237,7 @@ def main():
             else:
                 estado_jogador["acertos"] += 1
 
-            _salvar(dict(estado_jogador))
+            salvo_status = "success" if _salvar(dict(estado_jogador)) else "failed"
             _hud_strikes(
                 nome,
                 estado_jogador["strikes"],
@@ -253,7 +249,7 @@ def main():
             )
 
             if estado_jogador["strikes"] >= max_strikes:
-                _game_over(nome, estado_jogador["strikes"])
+                _game_over(nome, estado_jogador["strikes"], contexto)
                 _deletar_save()
                 break
 
@@ -264,17 +260,31 @@ def main():
                 print("  Opção inválida. Digite 's' para SIM ou 'n' para NÃO.")
 
             if continuar == "n":
+                if salvo_status == "success":
+                    msg_salvo = "Progresso salvo."
+                elif salvo_status == "failed":
+                    msg_salvo = "ATENÇÃO: Falha ao salvar o progresso."
+                else:
+                    msg_salvo = "Nenhum progresso novo para salvar."
+
                 print(
                     f"\n  Turno {contexto['turno'].lower()} encerrado no Porto de "
                     f"{contexto['porto_nome']} — {contexto['porto_uf']}. "
-                    f"Até amanhã, {nome}. Progresso salvo.\n"
+                    f"Até amanhã, {nome}. {msg_salvo}\n"
                 )
                 break
     except KeyboardInterrupt:
+        if salvo_status == "success":
+            msg_salvo = "Progresso salvo."
+        elif salvo_status == "failed":
+            msg_salvo = "ATENÇÃO: Falha ao salvar o progresso."
+        else:
+            msg_salvo = "Nenhum progresso ocorreu para ser salvo."
+
         print(
             f"\n\n  [SISTEMA INTERROMPIDO] Turno {contexto['turno'].lower()} "
             f"encerrado à força no Porto de {contexto['porto_nome']} — "
-            f"{contexto['porto_uf']}. Até logo, {nome}. Progresso salvo.\n"
+            f"{contexto['porto_uf']}. Até logo, {nome}. {msg_salvo}\n"
         )
 
 

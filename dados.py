@@ -1,7 +1,4 @@
 import random
-import string
-import json
-from pathlib import Path
 
 # ── Wordlists ─────────────────────────────────────────────────────────────────
 TIPOS_CARGA = [
