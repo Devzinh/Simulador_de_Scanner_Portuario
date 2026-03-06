@@ -19,6 +19,8 @@ SAVE_DEFAULTS = {
     "casos_graves": 0,
     "falsos_alarmes": 0,
     "eficiencia": 100,
+    "dificuldade": "Operacional",
+    "seed": None,
 }
 
 _NOME_MAX_LEN = 40
@@ -125,6 +127,12 @@ def _carregar() -> dict | None:
         for k in ("casos_graves", "falsos_alarmes", "eficiencia"):
             if not isinstance(dados_migrados.get(k), int) or dados_migrados[k] < 0:
                 return None
+
+
+        if not isinstance(dados_migrados.get("dificuldade"), str):
+            return None
+        if dados_migrados.get("seed") is not None and not isinstance(dados_migrados.get("seed"), int):
+            return None
 
         if not isinstance(dados_migrados.get("reputacao"), int):
             return None

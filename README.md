@@ -96,6 +96,11 @@ save.py
 python main.py
 ```
 
+Ao iniciar, você pode:
+- escolher **dificuldade** (Treinamento / Operacional / Crítico),
+- definir **seed fixa** opcional para depuração/reprodutibilidade,
+- habilitar **tema ANSI colorido** no terminal.
+
 Pronto. O jogo roda 100% no terminal.
 
 ---
@@ -112,7 +117,7 @@ Durante o jogo, as escolhas são feitas por teclado (inputs numéricos e confirm
 
 ---
 
-## 💾 Save game e segurança
+## 💾 Save game, segurança e relatórios
 
 O progresso é salvo em `save_ebco.json` e assinado por HMAC usando chave local (`.ebco_key`).
 
@@ -120,7 +125,11 @@ Isso oferece:
 - detecção de save adulterado,
 - escrita atômica com arquivo temporário,
 - migração com defaults para campos novos,
-- sanitização do nome do jogador.
+- sanitização do nome do jogador,
+- persistência da dificuldade e seed da partida.
+
+Ao encerrar um turno (normalmente, game over ou Ctrl+C), o jogo exporta
+relatórios em `reports/` nos formatos **JSON** e **CSV**.
 
 ---
 
@@ -157,11 +166,11 @@ Se quiser ajustar dificuldade/conteúdo:
 
 ## 🧭 Sugestões de evolução
 
-- [ ] Adicionar testes automatizados para funções puras de motor/eventos.
-- [ ] Criar modo “seed fixa” para depuração de partidas.
-- [ ] Exportar relatório final do turno em JSON/CSV.
-- [ ] Implementar níveis de dificuldade (Treinamento, Operacional, Crítico).
-- [ ] Melhorar UX com paleta ANSI opcional e tema de cores.
+- [x] Adicionar testes automatizados para funções puras (módulos core).
+- [x] Criar modo “seed fixa” para depuração de partidas.
+- [x] Exportar relatório final do turno em JSON/CSV.
+- [x] Implementar níveis de dificuldade (Treinamento, Operacional, Crítico).
+- [x] Melhorar UX com paleta ANSI opcional e tema de cores.
 
 ---
 

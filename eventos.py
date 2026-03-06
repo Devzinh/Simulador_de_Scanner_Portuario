@@ -322,7 +322,7 @@ def _efeitos_emergentes(estado_jogador):
 
 
 # ── Decisão inicial do fiscal ──────────────────────────────────────────────────
-def tomar_decisao(c, alertas, suspeitos_encontrados, estado_jogador):
+def tomar_decisao(c, alertas, suspeitos_encontrados, estado_jogador, pressao_operacional=1.0):
     if alertas:
         print("\n  🚨 ALERTAS DO SCANNER:")
         for a in alertas:
@@ -342,7 +342,8 @@ def tomar_decisao(c, alertas, suspeitos_encontrados, estado_jogador):
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO.")
             print(f"     Autorizado pelo fiscal para seguir ao destino.")
             efeitos["eficiencia"] += 1
-            if suspeitos_encontrados and random.random() < 0.65:
+            chance_interceptacao = _clamp(0.65 * pressao_operacional, 0.25, 0.95)
+            if suspeitos_encontrados and random.random() < chance_interceptacao:
                 print(f"\n  ⛔ AUDITORIA POSTERIOR — Conteiner {c['id']} interceptado.")
                 print(f"     Irregularidades confirmadas após rastreio de rota.")
                 print(f"     Erro de liberação registrado em seu prontuário.")
