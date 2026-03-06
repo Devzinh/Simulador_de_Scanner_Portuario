@@ -25,6 +25,35 @@ def _titulo(texto):
     print(f"  └{'─' * (W - 4)}┘")
 
 
+def _gerar_contexto_operacional():
+    portos = [
+        ("SANTOS", "SP"),
+        ("ITAJAÍ", "SC"),
+        ("PARANAGUÁ", "PR"),
+        ("SUAPE", "PE"),
+        ("PECÉM", "CE"),
+        ("MANAUS", "AM"),
+        ("VITÓRIA", "ES"),
+        ("RIO DE JANEIRO", "RJ"),
+        ("SALVADOR", "BA"),
+        ("RIO GRANDE", "RS"),
+    ]
+    turnos = ["MATUTINO", "VESPERTINO", "NOTURNO"]
+    fiscalizacoes = [
+        "TRIAGEM ADUANEIRA DE RISCO",
+        "OPERAÇÃO DE CONTRABANDO E DESCAMINHO",
+        "FISCALIZAÇÃO DE CARGA PERIGOSA",
+        "BLOCO DE INSPEÇÃO ALFANDEGÁRIA REFORÇADA",
+    ]
+    porto_nome, porto_uf = random.choice(portos)
+    return {
+        "porto_nome": porto_nome,
+        "porto_uf": porto_uf,
+        "turno": random.choice(turnos),
+        "fiscalizacao": random.choice(fiscalizacoes),
+    }
+
+
 # ── Loop principal ─────────────────────────────────────────────────────────────
 def _intro():
     import datetime
@@ -52,6 +81,7 @@ def _intro():
         "",
         f"DATA: {hoje}   TURNO: {turno}",
         f"TERMINAL: PORTO DE {porto_nome} — {porto_uf}",
+        f"MISSÃO: {fiscalizacao}",
         "",
     ])
 
@@ -64,7 +94,9 @@ def _intro():
   Bem-vindo, Inspetor {nome}.
 
   Você foi designado para o Terminal de Escaneamento do Porto
-  de Santos — o maior porto da América Latina.
+  de {porto_nome} — {porto_uf}, em turno {turno.lower()}.
+
+  A operação ativa desta rodada é: {fiscalizacao}.
 
   Seu trabalho é analisar os dados do scanner e decidir:
 
@@ -81,10 +113,13 @@ def _intro():
     print()
     input("  Pressione ENTER para iniciar o turno...")
     print()
-    return nome
+    return nome, contexto
 
 
-def _game_over(nome, strikes_total):
+def _game_over(nome, strikes_total, contexto):
+    porto_nome = contexto["porto_nome"]
+    porto_uf = contexto["porto_uf"]
+    turno = contexto["turno"]
     print()
     _box([
         "",
@@ -94,7 +129,8 @@ def _game_over(nome, strikes_total):
         f"{strikes_total} infrações graves registradas em prontuário.",
         "",
         "A EBCO não pode manter um fiscal cujos erros",
-        "colocam em risco a segurança do Porto de Santos.",
+        f"colocam em risco o Porto de {porto_nome} — {porto_uf}.",
+        f"Escala crítica comprometida no turno {turno.lower()}.",
         "",
         "Você foi afastado com efeito imediato.",
         "Processo administrativo disciplinar aberto.",
@@ -228,10 +264,18 @@ def main():
                 print("  Opção inválida. Digite 's' para SIM ou 'n' para NÃO.")
 
             if continuar == "n":
-                print(f"\n  Turno encerrado. Até amanhã, {nome}. Progresso salvo.\n")
+                print(
+                    f"\n  Turno {contexto['turno'].lower()} encerrado no Porto de "
+                    f"{contexto['porto_nome']} — {contexto['porto_uf']}. "
+                    f"Até amanhã, {nome}. Progresso salvo.\n"
+                )
                 break
     except KeyboardInterrupt:
-        print(f"\n\n  [SISTEMA INTERROMPIDO] Turno encerrado à força. Até logo, {nome}. Progresso salvo.\n")
+        print(
+            f"\n\n  [SISTEMA INTERROMPIDO] Turno {contexto['turno'].lower()} "
+            f"encerrado à força no Porto de {contexto['porto_nome']} — "
+            f"{contexto['porto_uf']}. Até logo, {nome}. Progresso salvo.\n"
+        )
 
 
 if __name__ == "__main__":

@@ -4,23 +4,36 @@ from dados import (
     ITENS_ISCA, ITENS_POR_TIPO, CHANCE_ITEM_SUSPEITO, CHANCE_CAMUFLAGEM, 
     CHANCE_ISCA, gerar_id_conteiner
 )
+
+
+def _clamp(valor, minimo, maximo):
+    return max(minimo, min(maximo, valor))
+
+
 def gerar_conteiner():
     tipo_carga = random.choice(TIPOS_CARGA)
     pais = random.choice(list(PAISES_ORIGEM.keys()))
     porto, iso, risco = PAISES_ORIGEM[pais]
 
+    risco_normalizado = (risco - 1) / 4  # 0.0 (baixo) -> 1.0 (crítico)
+    risk_mod = 0.8 + (0.4 * risco_normalizado)
+
+    chance_item_suspeito = _clamp(CHANCE_ITEM_SUSPEITO * risk_mod, 0.06, 0.24)
+    chance_camuflagem = _clamp(CHANCE_CAMUFLAGEM * (0.9 + 0.35 * risco_normalizado), 0.20, 0.80)
+    chance_isca = _clamp(CHANCE_ISCA * (1.15 - 0.30 * risco_normalizado), 0.08, 0.26)
+
     itens_escaneados = []
     for _ in range(random.randint(12, 22)):
         roll = random.random()
-        if roll < CHANCE_ITEM_SUSPEITO:
+        if roll < chance_item_suspeito:
             nome_real = random.choice(ITENS_SUSPEITOS)
-            if random.random() < CHANCE_CAMUFLAGEM:
+            if random.random() < chance_camuflagem:
                 nome_exibido = random.choice(NOMES_CAMUFLAGEM)
             else:
                 nome_exibido = nome_real
             densidade = random.randint(150, 500)
             suspeito = True
-        elif roll < CHANCE_ITEM_SUSPEITO + CHANCE_ISCA:
+        elif roll < chance_item_suspeito + chance_isca:
             nome_exibido, densidade_base = random.choice(ITENS_ISCA)
             densidade = densidade_base + random.randint(-30, 30)
             suspeito = False
@@ -33,10 +46,17 @@ def gerar_conteiner():
     novo_id = gerar_id_conteiner()
     if not isinstance(novo_id, str) or not novo_id.strip():
         raise RuntimeError("gerar_id_conteiner gerou um ID vazio ou inválido.")
+
+    peso_real = sum(item["densidade"] for item in itens_escaneados)
+    discrepancia_esperada = _clamp(0.02 + (0.08 * risco_normalizado), 0.02, 0.12)
+    discrepancia_real = _clamp(random.uniform(discrepancia_esperada * 0.5, discrepancia_esperada * 1.5), 0.01, 0.18)
+    direcao = -1 if random.random() < (0.45 + (0.25 * risco_normalizado)) else 1
+    peso_declarado = int(round(peso_real * (1 + (direcao * discrepancia_real))))
+    peso_declarado = max(500, peso_declarado)
     
     return {
         "id": novo_id,
-        "peso_declarado": random.randint(1000, 10000),
+        "peso_declarado": peso_declarado,
         "tipo_carga": tipo_carga,
         "pais": pais,
         "porto": porto,

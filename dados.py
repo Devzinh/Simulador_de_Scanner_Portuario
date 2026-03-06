@@ -142,6 +142,39 @@ CHANCE_ITEM_SUSPEITO = 0.12
 CHANCE_ISCA         = 0.18
 CHANCE_CAMUFLAGEM   = 0.45
 
+NARRATIVA_FRAGMENTOS = {
+    "contexto_operacao": [
+        {"ator": "Equipe de scanner", "local": "no pátio de triagem", "evidencia": "após nova varredura de densidade"},
+        {"ator": "Fiscal de plantão", "local": "no gate de importação", "evidencia": "durante conferência de manifesto"},
+        {"ator": "Centro de inteligência portuária", "local": "na doca secundária", "evidencia": "com base em alerta de rota"},
+        {"ator": "Guarda portuária", "local": "na área alfandegada", "evidencia": "após cruzamento com imagens térmicas"},
+    ],
+    "metodo_ocultacao": [
+        {"acao": "identificou fundo falso no assoalho", "evidencia": "com solda recente e parafusos fora do padrão", "tags": ["geral"]},
+        {"acao": "localizou volumes misturados à carga declarada", "evidencia": "com lacres internos divergentes", "tags": ["geral"]},
+        {"acao": "detectou tambores sem rastreabilidade", "evidencia": "com risco de dano ambiental", "tags": ["ambiental"]},
+        {"acao": "encontrou caixas médicas sem cadeia fria comprovada", "evidencia": "com rotulagem sanitária inconsistente", "tags": ["farmaceutico"]},
+    ],
+    "reacao_equipe": [
+        {"ator": "a Receita Federal", "acao": "reforçou o isolamento da área", "tags": ["geral"]},
+        {"ator": "a Polícia Federal", "acao": "iniciou protocolo de custódia", "tags": ["geral"]},
+        {"ator": "o IBAMA", "acao": "foi acionado para avaliação técnica imediata", "tags": ["ambiental"]},
+        {"ator": "a ANVISA", "acao": "assumiu a verificação sanitária do lote", "tags": ["farmaceutico"]},
+    ],
+    "consequencia_legal": [
+        {"consequencia": "com lavratura de auto de infração e retenção cautelar", "tags": ["geral"]},
+        {"consequencia": "com abertura de inquérito e comunicação ao Ministério Público", "tags": ["geral"]},
+        {"consequencia": "com processo administrativo ambiental e notificação do exportador", "tags": ["ambiental"]},
+        {"consequencia": "com interdição sanitária e termo de recolhimento oficial", "tags": ["farmaceutico"]},
+    ],
+    "impacto_terminal": [
+        {"consequencia": "gerando fila operacional no berço por até 2 horas"},
+        {"consequencia": "aumentando a taxa de inspeção manual no turno"},
+        {"consequencia": "bloqueando temporariamente a doca para perícia"},
+        {"consequencia": "elevando o nível de alerta interno no terminal"},
+    ],
+}
+
 def _digito_verificador(owner: str, serial: str) -> int:
     tabela = {c: i for i, c in enumerate("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")}
     valores = [tabela[c] * (2 ** i) for i, c in enumerate(owner + "U" + serial)]
