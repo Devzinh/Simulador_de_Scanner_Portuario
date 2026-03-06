@@ -1,59 +1,182 @@
-# Simulador de Scanner Portuário (EBCO Systems)
+# 🚢 Simulador de Scanner Portuário — EBCO Systems
 
-Um simulador narrativo em Python baseado em texto onde você atua como um inspetor de cargas da EBCO Systems em diversos portos brasileiros. Seu trabalho é analisar manifestos de carga, ler o output de um scanner portuário e decidir o destino de cada conteiner. 
+<p align="center">
+  <strong>Um jogo narrativo em terminal onde cada decisão aduaneira muda sua carreira.</strong>
+</p>
 
-Erre três vezes e você estará demitido.
-
-![Screenshots do Jogo (Opcional) - Substitua por uma imagem do seu terminal rodando o jogo]()
-
-## 🛠️ Funcionalidades
-
-- **Escaneamento Realista:** O scanner *nunca lhe diz o que é ilegal*. Ele reporta apenas anomalias de densidade (>300 kg/m³) e discrepâncias de peso. O jogador precisa cruzar os itens do manifesto com o peso e comportamento esperado.
-- **Camuflagem Dinâmica:** Contrabandistas tentam enganar você misturando "Armas de Fogo" com "Farinha Especial", ou utilizando materiais que servem de isca para o scanner.
-- **Inteligência Artificial de Decisão:** Sistema procedural que gera infinitos conteineres únicos. Nenhuma partida é igual a outra:
-  - Dezenas de itens legítimos, suspeitos e camuflados.
-  - Portos de origem globais com índices de risco (1 a 5).
-  - Terminal de operação brasileiro pseudo-aleatório (Santos, Suape, Pecém, Manaus, etc).
-- **Múltiplos Desfechos Policiais:** Baseado em procedimentos reais das polícias federais, IBAMA, ANVISA e Receita Federal. Você pode abrir IP (Inquérito Policial), efetuar prisões em flagrante, lacrar carga ou confiscar sob custódia do IML/COAF.
-- **Sistema de Salvação (Save Game):** O jogo salva o estado do inspetor a cada conteiner. Se você fechar o terminal (ou forçar a saída com `Ctrl+C`), seu progresso até ali estará intacto para a próxima vez.
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="Status" src="https://img.shields.io/badge/status-jog%C3%A1vel-22c55e?style=for-the-badge">
+  <img alt="Interface" src="https://img.shields.io/badge/interface-terminal-111827?style=for-the-badge">
+  <img alt="Licença" src="https://img.shields.io/badge/licen%C3%A7a-educacional-f59e0b?style=for-the-badge">
+</p>
 
 ---
 
-## 🏗️ Estrutura Arquitetural
+## 🎬 O que é este projeto?
 
-O projeto foi dividido para ser modular e facilmente expansível:
+No **Simulador de Scanner Portuário**, você assume o papel de um(a) inspetor(a) da **EBCO Systems** em operações de fiscalização de carga.
 
-- `main.py` — Ponto de entrada. Gerencia os menus interativos e a interface de terminal.
-- `motor.py` — O "motor" pesado: lógica matemática do scanner de raio-X e montagem aleatória do conteiner.
-- `eventos.py` — A espinha dorsal narrativa. Concentra todas as autoridades portuárias, as vistorias físicas e as dezenas de desfechos em cascata caso uma inspeção seja retida.
-- `dados.py` — O banco de dados estático contendo wordlists de itens, portos, coeficientes de camuflagem e viaturas.
-- `save.py` — Wrapper para leitura e gravação segura do arquivo `save_ebco.json`.
+Seu trabalho é:
+- ler os dados técnicos de scanner (densidade/peso/rota),
+- identificar sinais de risco sem “resposta pronta”,
+- decidir entre **liberar**, **reter** ou **acionar autoridades**.
+
+> ⚠️ **Regra crítica**: o scanner não diz “isso é ilegal”. Ele só mostra sinais técnicos.
+> A interpretação é toda sua.
+
+Erre demais e sua reputação cai. Com **3 strikes**, você é afastado(a).
 
 ---
 
-## 🚀 Como Jogar
+## ✨ Destaques de gameplay
 
-1. Certifique-se de ter o Python (versão 3.10 ou superior) instalado no computador.
-2. Clone o repositório ou baixe os arquivos.
-3. No terminal (CMD, PowerShell ou Linux Shell), navegue até a pasta do projeto.
-4. Rode as fileiras:
+- 🔎 **Scanner semi-realista**: alerta por densidade atípica e discrepância de peso.
+- 🎭 **Camuflagem dinâmica**: itens suspeitos podem aparecer disfarçados.
+- 🌍 **Risco por origem**: país/rota alteram probabilidades do motor.
+- 🧠 **Sistema emergente**: auditorias e bônus de inteligência conforme desempenho.
+- 🚔 **Múltiplos desfechos operacionais**: inspeção física, flagrante, encaminhamento legal.
+- 💾 **Save robusto com integridade (HMAC)**: evita adulteração do progresso.
+
+---
+
+## 🧱 Arquitetura (visão rápida)
+
+```text
+main.py
+  ├─ fluxo principal, interface e HUD
+  ├─ chama motor.py para gerar/escanear conteiner
+  ├─ chama eventos.py para decisões e consequências
+  └─ persiste estado via save.py
+
+motor.py
+  ├─ geração procedural do conteiner
+  └─ simulação do scanner e alertas técnicos
+
+eventos.py
+  ├─ árvore de decisões (liberar/reter/acionar)
+  ├─ narrativas e desfechos (inspeção/flagrante)
+  └─ aplicação de efeitos (reputação, eficiência, strikes)
+
+dados.py
+  ├─ catálogos de itens e países
+  ├─ probabilidades base do jogo
+  └─ fragmentos narrativos + geração de ID de conteiner
+
+save.py
+  ├─ sanitização de entrada
+  ├─ assinatura HMAC do payload
+  └─ leitura/escrita segura de save_ebco.json
+```
+
+---
+
+## 🔁 Loop de jogo (como a rodada funciona)
+
+1. O motor gera um contêiner com origem, tipo de carga, itens e pesos.
+2. O scanner imprime sinais técnicos e possíveis alertas.
+3. Você decide:
+   - `[1]` Liberar,
+   - `[2]` Reter para inspeção,
+   - `[3]` Acionar autoridades.
+4. O sistema resolve consequências e atualiza métricas:
+   - `strikes`, `acertos/erros`, `reputação`, `casos_graves`, `falsos_alarmes`, `eficiência`.
+5. O estado é salvo automaticamente ao final do ciclo.
+
+---
+
+## 🚀 Como executar
+
+### Pré-requisitos
+- Python **3.10+**
+
+### Rodando localmente
 
 ```bash
 python main.py
 ```
 
-O jogo será acionado no próprio terminal. Leia atentamente o peso das cargas e não deixe a pressa te gerar advertências ("strikes").
-
-## ⚠️ Sobre o Ctrl+C
-O jogo possui tratamento para Keyboard Interruptions. Se em qualquer tela você pressionar `Ctrl+C`, o simulador vai encerrar graciosamente, registrando seu último save, sem "sujar" o seu terminal de erros de compilação.
+Pronto. O jogo roda 100% no terminal.
 
 ---
 
-## 👩‍💻 Como Contribuir
+## 🎮 Controles e decisões
 
-- **Mais itens:** Adicione novas mercadorias no dicionário `ITENS_POR_TIPO` em `dados.py`.
-- **Novas autoridades:** Se quiser incluir a Força Aérea ou Interpol, edite as constates `_EQUIPES` e `_UNIDADES_ACIONADAS` em `eventos.py`.
-- Lembre-se que portos de destino/operação ficam dentro de `main.py`, enquanto origens de carga ficam em `dados.py`.
+Durante o jogo, as escolhas são feitas por teclado (inputs numéricos e confirmações `s/n`).
+
+- **[1] Liberar** → pode render eficiência, mas existe risco de auditoria posterior.
+- **[2] Reter** → aumenta cautela, porém pode gerar falso alarme.
+- **[3] Acionar autoridades** → ação forte, com chance de flagrante ou desgaste operacional.
+
+💡 **Dica de estratégia**: use o conjunto completo de sinais (peso, densidade, origem e coerência narrativa dos itens), não apenas um alerta isolado.
 
 ---
-*Criado com fins didáticos para simulação de fluxo aduaneiro e tomada de decisão lógica.*
+
+## 💾 Save game e segurança
+
+O progresso é salvo em `save_ebco.json` e assinado por HMAC usando chave local (`.ebco_key`).
+
+Isso oferece:
+- detecção de save adulterado,
+- escrita atômica com arquivo temporário,
+- migração com defaults para campos novos,
+- sanitização do nome do jogador.
+
+---
+
+## 🧪 Balanceamento e customização
+
+Se quiser ajustar dificuldade/conteúdo:
+
+- `dados.py`
+  - `CHANCE_ITEM_SUSPEITO`
+  - `CHANCE_ISCA`
+  - `CHANCE_CAMUFLAGEM`
+  - listas de itens e países
+- `eventos.py`
+  - pesos de consequência (reputação/eficiência/strikes)
+  - fluxos narrativos e opções de encaminhamento
+- `motor.py`
+  - lógica de risco por origem e discrepância de peso
+
+---
+
+## 🗂️ Estrutura do projeto
+
+```text
+.
+├── main.py      # entrada e loop principal
+├── motor.py     # geração procedural + scanner
+├── eventos.py   # decisões, narrativas e efeitos
+├── dados.py     # datasets e probabilidades
+├── save.py      # persistência segura do progresso
+└── README.md
+```
+
+---
+
+## 🧭 Sugestões de evolução
+
+- [ ] Adicionar testes automatizados para funções puras de motor/eventos.
+- [ ] Criar modo “seed fixa” para depuração de partidas.
+- [ ] Exportar relatório final do turno em JSON/CSV.
+- [ ] Implementar níveis de dificuldade (Treinamento, Operacional, Crítico).
+- [ ] Melhorar UX com paleta ANSI opcional e tema de cores.
+
+---
+
+## 🤝 Contribuição
+
+Contribuições são bem-vindas para:
+- novos itens e rotas,
+- novos cenários narrativos,
+- novos órgãos/equipes de fiscalização,
+- melhorias de equilíbrio e progressão.
+
+---
+
+## 📌 Observações
+
+Este projeto foi criado com foco didático/simulativo para exercitar lógica de decisão sob incerteza em contexto aduaneiro.
+
+Se quiser, posso também montar uma versão do README com **GIF do terminal** (asciinema + preview em SVG/GIF) para deixá-lo ainda mais “animado” visualmente.
