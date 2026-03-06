@@ -4,17 +4,41 @@ from dados import ITENS_SUSPEITOS
 _EQUIPES = [
     ("Equipe Alfa",   "Receita Federal — Setor de Scanner Avançado"),
     ("Equipe Bravo",  "Polícia Federal — DENARC / Narcóticos"),
-    ("Equipe Charlie","IBAMA — Divisão de Fauna e Carga Ambiental"),
+    ("Equipe Charlie", "IBAMA — Divisão de Fauna e Carga Ambiental"),
     ("Equipe Delta",  "ANVISA — Vigilância Sanitária Portuária"),
     ("Equipe Echo",   "Guarda Portuária (GPort) — Patrulha de Cais"),
-    ("Equipe Foxtrot","Receita Federal + Cão Farejador K-9"),
+    ("Equipe Foxtrot", "Receita Federal + Cão Farejador K-9"),
     ("Equipe Golf",   "Força Nacional — Missão GLO Porto de Santos"),
 ]
+
+
+def _efeitos_base():
+    return {
+        "ganhou_strike": False,
+        "reputacao": 0,
+        "casos_graves": 0,
+        "falsos_alarmes": 0,
+        "eficiencia": 0,
+        "risco_interno": 0,
+        "bonus_inteligencia": 0,
+    }
+
+
+def _merge_efeitos(*efeitos):
+    final = _efeitos_base()
+    for efeito in efeitos:
+        for k, v in efeito.items():
+            if k == "ganhou_strike":
+                final[k] = final[k] or bool(v)
+            else:
+                final[k] += v
+    return final
+
 
 def _inspecao_positiva(c, achou):
     """Equipe encontrou irregularidade — escolha de como encaminhar."""
     qtd_presos = random.randint(0, 3)
-    peso_kg    = random.randint(5, 800)
+    peso_kg = random.randint(5, 800)
 
     cenario = random.choice([
         "drogas ocultas em fundo falso do conteiner",
@@ -39,31 +63,26 @@ def _inspecao_positiva(c, achou):
     print("   [4] Abrir Inquérito Policial e liberar tripulação sob monitoramento")
 
     while True:
-        try:
-            acao = input("\n  Sua decisão (1/2/3/4): ").strip()
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
-        
+        acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         if acao == "1":
-            print(f"\n  � PF acionada. Flagrante lavrado — {max(qtd_presos,1)} preso(s).")
+            print(f"\n  🚔 PF acionada. Flagrante lavrado — {max(qtd_presos,1)} preso(s).")
             print(f"     Conteiner {c['id']} recolhido como corpo de delito.")
             print(f"     Operação registrada no sistema COAF.\n")
-            break
-        elif acao == "2":
+            return {"reputacao": 7, "casos_graves": 1, "eficiencia": 3, "risco_interno": -2}
+        if acao == "2":
             valor_multa = random.randint(50, 500) * 1000
-            print(f"\n  � Auto de Infração emitido — multa estimada: R$ {valor_multa:,}.")
+            print(f"\n  📋 Auto de Infração emitido — multa estimada: R$ {valor_multa:,}.")
             print(f"     Conteiner {c['id']} lacrado. Perícia forense convocada (ETA 24–48h).\n")
-            break
-        elif acao == "3":
+            return {"reputacao": 5, "casos_graves": 1, "eficiencia": 2, "risco_interno": -1}
+        if acao == "3":
             print(f"\n  🔬 Carga encaminhada à Receita Federal para destruição.")
             print(f"     Processo administrativo {c['id']}-RF aberto. Armador notificado.\n")
-            break
-        elif acao == "4":
-            print(f"\n  � Inquérito Policial Federal aberto — nº {random.randint(100,999)}/2026-SR/SP.")
+            return {"reputacao": 6, "casos_graves": 1, "eficiencia": 2, "risco_interno": -1}
+        if acao == "4":
+            print(f"\n  🕵 Inquérito Policial Federal aberto — nº {random.randint(100,999)}/2026-SR/SP.")
             print(f"     Tripulação liberada com tornozeleira. Passaportes retidos.\n")
-            break
-        else:
-            print("  Opção inválida.")
+            return {"reputacao": 3, "casos_graves": 1, "eficiencia": 1, "risco_interno": 0}
+        print("  Opção inválida.")
 
 
 def _inspecao_negativa(c):
@@ -86,24 +105,19 @@ def _inspecao_negativa(c):
     print("   [3] Liberar, mas registrar alerta para rastreio de rota")
 
     while True:
-        try:
-            acao = input("\n  Sua decisão (1/2/3): ").strip()
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
-
+        acao = input("\n  Sua decisão (1/2/3): ").strip()
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO após vistoria.\n")
-            break
-        elif acao == "2":
+            return {"reputacao": -1, "falsos_alarmes": 1, "eficiencia": -1, "risco_interno": 1}
+        if acao == "2":
             print(f"\n  🔄 Segunda inspeção solicitada — aguardando equipe disponível.")
             print(f"     Conteiner {c['id']} permanece no pátio de retenção.\n")
-            break
-        elif acao == "3":
-            print(f"\n  � Conteiner {c['id']} liberado com alerta de monitoramento.")
+            return {"reputacao": -2, "falsos_alarmes": 1, "eficiencia": -2, "risco_interno": 2}
+        if acao == "3":
+            print(f"\n  📡 Conteiner {c['id']} liberado com alerta de monitoramento.")
             print(f"     Sistema SisComex notificado — rastreio ativo até destino final.\n")
-            break
-        else:
-            print("  Opção inválida.")
+            return {"reputacao": 0, "falsos_alarmes": 1, "eficiencia": -1, "risco_interno": 1}
+        print("  Opção inválida.")
 
 
 def _resultado_inspecao_fisica(c, suspeitos_encontrados):
@@ -116,34 +130,33 @@ def _resultado_inspecao_fisica(c, suspeitos_encontrados):
     chance_confirmar = 0.72 if suspeitos_encontrados else 0.12
     if random.random() < chance_confirmar:
         achou = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
-        _inspecao_positiva(c, achou)
-    else:
-        _inspecao_negativa(c)
+        return _inspecao_positiva(c, achou)
+    return _inspecao_negativa(c)
 
 
-# ── Acionamento imediato de autoridades — banco de desfechos ──────────────────
 _UNIDADES_ACIONADAS = [
-    ("DRF",     "Delegacia da Receita Federal"),
-    ("DRACO",   "Delegacia de Repressão ao Crime Organizado"),
-    ("DENARC",  "Polícia Federal — Divisão de Narcóticos"),
-    ("GOE-PF",  "Grupamento de Operações Especiais — PF"),
+    ("DRF", "Delegacia da Receita Federal"),
+    ("DRACO", "Delegacia de Repressão ao Crime Organizado"),
+    ("DENARC", "Polícia Federal — Divisão de Narcóticos"),
+    ("GOE-PF", "Grupamento de Operações Especiais — PF"),
     ("COIPORT", "Coordenação de Inteligência Portuária"),
-    ("GPort",   "Guarda Portuária — Ronda Tática de Cais"),
-    ("CIPOE",   "Companhia de Inteligência Portuária — Exército"),
+    ("GPort", "Guarda Portuária — Ronda Tática de Cais"),
+    ("CIPOE", "Companhia de Inteligência Portuária — Exército"),
 ]
 
+
 def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
-    alvo   = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
+    alvo = suspeitos_encontrados or [random.choice(ITENS_SUSPEITOS)]
     detidos = random.randint(1, 5)
     peso_kg = random.randint(10, 1200)
 
     cenarios = [
-        f"Operadores do terminal tentaram remover os itens durante abordagem.",
-        f"Carga encontrada em compartimento oculto no assoalho do conteiner.",
-        f"Dois veículos de fuga interceptados na saída do terminal.",
-        f"Operação coordenada com Marinha — embarcação de apoio abordada no canal.",
-        f"Suspeitos identificados por câmeras de vigilância do porto horas antes.",
-        f"Itens embalados com supressor de odor — cão K-9 alertou mesmo assim.",
+        "Operadores do terminal tentaram remover os itens durante abordagem.",
+        "Carga encontrada em compartimento oculto no assoalho do conteiner.",
+        "Dois veículos de fuga interceptados na saída do terminal.",
+        "Operação coordenada com Marinha — embarcação de apoio abordada no canal.",
+        "Suspeitos identificados por câmeras de vigilância do porto horas antes.",
+        "Itens embalados com supressor de odor — cão K-9 alertou mesmo assim.",
     ]
     print(f"\n  🔴 FLAGRANTE CONFIRMADO — {random.choice(cenarios)}")
     print(f"\n     Itens apreendidos:")
@@ -158,31 +171,25 @@ def _flagrante_positivo(c, suspeitos_encontrados, unidade_sigla):
     print("   [4] Comunicar COAF — suspeita de lavagem de dinheiro")
 
     while True:
-        try:
-            acao = input("\n  Sua decisão (1/2/3/4): ").strip()
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
-
+        acao = input("\n  Sua decisão (1/2/3/4): ").strip()
         if acao == "1":
             print(f"\n  📋 Flagrante lavrado. {detidos} preso(s) — Centro de Detenção Provisória.")
             print(f"     Perícia do IML agendada para as próximas 6h.\n")
-            break
-        elif acao == "2":
+            return {"reputacao": 8, "casos_graves": 1, "eficiencia": 4, "risco_interno": -2}
+        if acao == "2":
             num_ip = random.randint(100, 999)
-            print(f"\n  � Inquérito Federal nº {num_ip}/2026-SR/SP aberto.")
+            print(f"\n  🕵 Inquérito Federal nº {num_ip}/2026-SR/SP aberto.")
             print(f"     Custódia transferida à PF. Advogados notificados.\n")
-            break
-        elif acao == "3":
+            return {"reputacao": 6, "casos_graves": 1, "eficiencia": 3, "risco_interno": -1}
+        if acao == "3":
             print(f"\n  ⚖ Ministério Público acionado — pedido de prisão preventiva.")
             print(f"     Audiência de custódia marcada para as próximas 24h.\n")
-            break
-        elif acao == "4":
-            print(f"\n  � COAF notificado — investigação de lavagem iniciada.")
+            return {"reputacao": 7, "casos_graves": 1, "eficiencia": 3, "risco_interno": -1}
+        if acao == "4":
+            print(f"\n  💰 COAF notificado — investigação de lavagem iniciada.")
             print(f"     Contas bancárias dos envolvidos bloqueadas preventivamente.\n")
-            break
-        else:
-            print("  Opção inválida.")
-    return False
+            return {"reputacao": 5, "casos_graves": 1, "eficiencia": 2, "risco_interno": 0}
+        print("  Opção inválida.")
 
 
 def _flagrante_negativo(c, suspeitos_encontrados):
@@ -209,25 +216,22 @@ def _flagrante_negativo(c, suspeitos_encontrados):
     print("   [3] Liberar, mas registrar no SisComex para rastreio de rota")
 
     while True:
-        try:
-            acao = input("\n  Sua decisão (1/2/3): ").strip()
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
-
+        acao = input("\n  Sua decisão (1/2/3): ").strip()
         if acao == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO pela unidade no local.\n")
-            break
-        elif acao == "2":
+            return {"ganhou_strike": ganhou_strike, "reputacao": -4 if ganhou_strike else -1,
+                    "falsos_alarmes": 1, "eficiencia": -3 if ganhou_strike else -1, "risco_interno": 3 if ganhou_strike else 1}
+        if acao == "2":
             print(f"\n  🔒 Reforço solicitado. Segunda unidade a caminho.")
             print(f"     Conteiner {c['id']} em quarentena no pátio de retenção.\n")
-            break
-        elif acao == "3":
+            return {"ganhou_strike": ganhou_strike, "reputacao": -3 if ganhou_strike else -1,
+                    "falsos_alarmes": 1, "eficiencia": -2, "risco_interno": 2 if ganhou_strike else 1}
+        if acao == "3":
             print(f"\n  📡 Liberado com rastreio ativo. SisComex notificado.")
             print(f"     Alerta gerado para o porto de destino.\n")
-            break
-        else:
-            print("  Opção inválida.")
-    return ganhou_strike
+            return {"ganhou_strike": ganhou_strike, "reputacao": -2 if ganhou_strike else 0,
+                    "falsos_alarmes": 1, "eficiencia": -1, "risco_interno": 2 if ganhou_strike else 1}
+        print("  Opção inválida.")
 
 
 def _desfecho_autoridades(c, suspeitos_encontrados):
@@ -240,11 +244,44 @@ def _desfecho_autoridades(c, suspeitos_encontrados):
     chance_flagrante = 0.75 if suspeitos_encontrados else 0.20
     if random.random() < chance_flagrante:
         return _flagrante_positivo(c, suspeitos_encontrados, sigla)
-    else:
-        return _flagrante_negativo(c, suspeitos_encontrados)
+    return _flagrante_negativo(c, suspeitos_encontrados)
+
+
+def _aplicar_efeitos(estado_jogador, efeitos):
+    estado_jogador["reputacao"] = max(0, min(100, estado_jogador["reputacao"] + efeitos["reputacao"]))
+    estado_jogador["casos_graves"] = max(0, estado_jogador["casos_graves"] + efeitos["casos_graves"])
+    estado_jogador["falsos_alarmes"] = max(0, estado_jogador["falsos_alarmes"] + efeitos["falsos_alarmes"])
+    estado_jogador["eficiencia"] = max(0, min(100, estado_jogador["eficiencia"] + efeitos["eficiencia"]))
+
+
+def _efeitos_emergentes(estado_jogador):
+    efeitos = _efeitos_base()
+
+    if estado_jogador["reputacao"] <= 30:
+        chance_auditoria = min(0.75, 0.25 + estado_jogador["falsos_alarmes"] * 0.04)
+        if random.random() < chance_auditoria:
+            print("\n  🧾 AUDITORIA INTERNA EXTRAORDINÁRIA ABERTA.")
+            print("     Reputação baixa elevou o nível de escrutínio do seu turno.")
+            efeitos["reputacao"] -= 2
+            efeitos["eficiencia"] -= 1
+            efeitos["risco_interno"] += 2
+            if random.random() < 0.35:
+                print("     ⛔ Não conformidade processual encontrada: advertência formal aplicada.")
+                efeitos["ganhou_strike"] = True
+
+    if estado_jogador["reputacao"] >= 75:
+        chance_bonus = min(0.7, 0.25 + estado_jogador["casos_graves"] * 0.03)
+        if random.random() < chance_bonus:
+            print("\n  🛰 BÔNUS DE INTELIGÊNCIA LIBERADO.")
+            print("     Você recebeu dossiês antecipados de risco para os próximos lotes.")
+            efeitos["bonus_inteligencia"] += 1
+            efeitos["eficiencia"] += 1
+
+    return efeitos
+
 
 # ── Decisão inicial do fiscal ──────────────────────────────────────────────────
-def tomar_decisao(c, alertas, suspeitos_encontrados):
+def tomar_decisao(c, alertas, suspeitos_encontrados, estado_jogador):
     if alertas:
         print("\n  🚨 ALERTAS DO SCANNER:")
         for a in alertas:
@@ -258,32 +295,39 @@ def tomar_decisao(c, alertas, suspeitos_encontrados):
     print("   [3] Acionar autoridades imediatamente (suspeita grave)")
 
     while True:
-        try:
-            escolha = input("\n  Digite sua escolha (1/2/3): ").strip()
-        except KeyboardInterrupt:
-            raise KeyboardInterrupt
+        escolha = input("\n  Digite sua escolha (1/2/3): ").strip()
+
+        efeitos = _efeitos_base()
 
         if escolha == "1":
             print(f"\n  ✅ Conteiner {c['id']} LIBERADO.")
             print(f"     Autorizado pelo fiscal para seguir ao destino.")
+            efeitos["eficiencia"] += 1
             if suspeitos_encontrados and random.random() < 0.65:
                 print(f"\n  ⛔ AUDITORIA POSTERIOR — Conteiner {c['id']} interceptado.")
                 print(f"     Irregularidades confirmadas após rastreio de rota.")
                 print(f"     Erro de liberação registrado em seu prontuário.")
-                return True
+                efeitos = _merge_efeitos(
+                    efeitos,
+                    {"ganhou_strike": True, "reputacao": -8, "casos_graves": 1, "eficiencia": -4, "risco_interno": 3},
+                )
+            else:
+                efeitos["reputacao"] += 1
             print()
-            return False
         elif escolha == "2":
             print(f"\n  🔒 Conteiner {c['id']} RETIDO.")
             print(f"     Aguardando inspeção física pela equipe de fiscalização.")
-            _resultado_inspecao_fisica(c, suspeitos_encontrados)
-            return False
+            efeitos = _merge_efeitos(efeitos, _resultado_inspecao_fisica(c, suspeitos_encontrados))
         elif escolha == "3":
             print(f"\n  🚔 Conteiner {c['id']} — AUTORIDADES ACIONADAS.")
-            ganhou = _desfecho_autoridades(c, suspeitos_encontrados)
-            return ganhou
+            efeitos = _merge_efeitos(efeitos, _desfecho_autoridades(c, suspeitos_encontrados))
         else:
             print("  Opção inválida. Escolha 1, 2 ou 3.")
+            continue
+
+        efeitos = _merge_efeitos(efeitos, _efeitos_emergentes(estado_jogador))
+        _aplicar_efeitos(estado_jogador, efeitos)
+        return efeitos
 
 
 # ── UI helpers ───────────────────────────────────────────────────────────────

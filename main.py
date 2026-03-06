@@ -5,6 +5,7 @@ from save import _salvar, _carregar, _deletar_save
 
 W = 62
 
+
 def _box(linhas, char_topo="═", char_lado="║"):
     borda = char_topo * (W - 2)
     print(f"╔{borda}╗")
@@ -13,8 +14,10 @@ def _box(linhas, char_topo="═", char_lado="║"):
         print(f"{char_lado} {texto.center(W - 4)} {char_lado}")
     print(f"╚{borda}╝")
 
+
 def _sep(char="─"):
     print(char * W)
+
 
 def _titulo(texto):
     print(f"\n  ┌{'─' * (W - 4)}┐")
@@ -27,15 +30,15 @@ def _intro():
     import datetime
     hoje = datetime.date.today().strftime("%d/%m/%Y")
     PORTOS = [
-        ("SANTOS",     "SP"),
-        ("ITAJAÍ",     "SC"),
-        ("PARANAGUÁ",  "PR"),
-        ("SUAPE",      "PE"),
-        ("PECÉM",      "CE"),
-        ("MANAUS",     "AM"),
-        ("VITÓRIA",    "ES"),
+        ("SANTOS", "SP"),
+        ("ITAJAÍ", "SC"),
+        ("PARANAGUÁ", "PR"),
+        ("SUAPE", "PE"),
+        ("PECÉM", "CE"),
+        ("MANAUS", "AM"),
+        ("VITÓRIA", "ES"),
         ("RIO DE JANEIRO", "RJ"),
-        ("SALVADOR",   "BA"),
+        ("SALVADOR", "BA"),
         ("RIO GRANDE", "RS"),
     ]
     TURNOS = ["MATUTINO", "VESPERTINO", "NOTURNO"]
@@ -100,14 +103,40 @@ def _game_over(nome, strikes_total):
     print()
 
 
-
-def _hud_strikes(nome, strikes, max_strikes, total, acertos, erros):
+def _hud_strikes(nome, strikes, max_strikes, total, acertos, erros, estado_jogador):
     restantes = max_strikes - strikes
     icones = "🟥" * strikes + "⬜" * restantes
     _sep()
     print(f"  Inspetor: {nome:<16}  Advertências: {icones}  ({strikes}/{max_strikes})")
     print(f"  Conteineres: {total:<5} Acertos: {acertos:<5} Erros: {erros}")
+    print(
+        f"  Reputação: {estado_jogador['reputacao']:>3}/100  "
+        f"Casos graves: {estado_jogador['casos_graves']:<3}  "
+        f"Falsos alarmes: {estado_jogador['falsos_alarmes']:<3}  "
+        f"Eficiência: {estado_jogador['eficiencia']:>3}%"
+    )
     _sep()
+
+
+def _estado_inicial(nome):
+    return {
+        "nome": nome,
+        "strikes": 0,
+        "total": 0,
+        "acertos": 0,
+        "erros": 0,
+        "reputacao": 50,
+        "casos_graves": 0,
+        "falsos_alarmes": 0,
+        "eficiencia": 100,
+    }
+
+
+def _chance_bonus_inteligencia(estado_jogador):
+    if estado_jogador["reputacao"] < 75:
+        return False
+    chance = min(0.6, 0.20 + estado_jogador["casos_graves"] * 0.02)
+    return random.random() < chance
 
 
 def main():
@@ -120,10 +149,15 @@ def main():
             _sep()
             print(f"  💾 SAVE ENCONTRADO")
             print(f"  Inspetor    : {save['nome']}")
-            print(f"  Advertências: {save['strikes']}/{max_strikes}   "
-                  f"Conteineres: {save['total']}   Acertos: {save['acertos']}")
+            print(f"  Advertências: {save['strikes']}/{max_strikes}   Conteineres: {save['total']}   Acertos: {save['acertos']}")
+            print(
+                f"  Reputação   : {save['reputacao']}/100   "
+                f"Casos graves: {save['casos_graves']}   "
+                f"Falsos alarmes: {save['falsos_alarmes']}   "
+                f"Eficiência: {save['eficiencia']}%"
+            )
             _sep()
-            
+
             while True:
                 resp = input("\n  Continuar partida salva? (s/n): ").strip().lower()
                 if resp in ('s', 'n'):
@@ -131,24 +165,21 @@ def main():
                 print("  Opção inválida. Digite 's' para SIM ou 'n' para NÃO.")
 
             if resp == "s":
-                nome    = save["nome"]
-                strikes = save["strikes"]
-                total   = save["total"]
-                acertos = save["acertos"]
-                erros   = save["erros"]
+                estado_jogador = dict(save)
+                nome = estado_jogador["nome"]
                 print(f"\n  Bem-vindo de volta, Inspetor {nome}.\n")
             else:
                 _deletar_save()
-                nome    = _intro()
-                strikes = total = acertos = erros = 0
+                nome = _intro()
+                estado_jogador = _estado_inicial(nome)
         except KeyError:
             print("\n  [AVISO] Dados do save estão incompletos. Iniciando nova partida.")
             _deletar_save()
             save = None
-            
+
     if not save:
-        nome    = _intro()
-        strikes = total = acertos = erros = 0
+        nome = _intro()
+        estado_jogador = _estado_inicial(nome)
 
     primeiro = True
     try:
@@ -156,23 +187,37 @@ def main():
             if not primeiro:
                 input(f"\n  [{nome}] Pressione ENTER para escanear o próximo conteiner...")
             primeiro = False
+
             c = gerar_conteiner()
             alertas, suspeitos = simular_scanner(c)
-            ganhou_strike = tomar_decisao(c, alertas, suspeitos)
 
-            total += 1
-            if ganhou_strike:
-                strikes += 1
-                erros   += 1
+            if _chance_bonus_inteligencia(estado_jogador) and suspeitos:
+                dica = random.choice(suspeitos)
+                alertas = alertas + [f"INTEL EBCO: rota com histórico ligado a '{dica}'."]
+                print("\n  🛰 Inteligência prévia adicionou um alerta contextual ao scanner.")
+
+            efeitos = tomar_decisao(c, alertas, suspeitos, estado_jogador)
+
+            estado_jogador["total"] += 1
+            if efeitos["ganhou_strike"]:
+                estado_jogador["strikes"] += 1
+                estado_jogador["erros"] += 1
             else:
-                acertos += 1
+                estado_jogador["acertos"] += 1
 
-            _salvar({"nome": nome, "strikes": strikes,
-                     "total": total, "acertos": acertos, "erros": erros})
-            _hud_strikes(nome, strikes, max_strikes, total, acertos, erros)
+            _salvar(dict(estado_jogador))
+            _hud_strikes(
+                nome,
+                estado_jogador["strikes"],
+                max_strikes,
+                estado_jogador["total"],
+                estado_jogador["acertos"],
+                estado_jogador["erros"],
+                estado_jogador,
+            )
 
-            if strikes >= max_strikes:
-                _game_over(nome, strikes)
+            if estado_jogador["strikes"] >= max_strikes:
+                _game_over(nome, estado_jogador["strikes"])
                 _deletar_save()
                 break
 
